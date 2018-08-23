@@ -39,7 +39,6 @@ class WaypointUpdater(object):
         self.stopline_wp_idx = -1
         self.waypoints_2d = None
         self.waypoint_tree = None
-        self.last_closest_waypoint_idx = -1;
         
         rospy.Subscriber('/current_pose', PoseStamped, self.pose_cb)
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
@@ -86,10 +85,6 @@ class WaypointUpdater(object):
         lane = Lane()
         
         closest_idx = self.get_closest_waypoint_idx()
-        if closest_idx <> self.last_closest_waypoint_idx:
-            rospy.logwarn("Closest waypoint idx: {0}".format(closest_idx))
-            self.last_closest_waypoint_idx = closest_idx
-        
         
         farthest_idx = closest_idx + LOOKAHEAD_WPS
         base_waypoints = self.base_lane.waypoints[closest_idx:farthest_idx]
@@ -103,7 +98,7 @@ class WaypointUpdater(object):
         
     def decelerate_waypoints(self, waypoints, closest_idx):
         temp = []
-        for i, wp in enumarate(waypoints):
+        for i, wp in enumerate(waypoints):
             p = Waypoint()
             p.pose = wp.pose
                 
