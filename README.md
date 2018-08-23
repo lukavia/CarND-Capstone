@@ -1,74 +1,33 @@
-This is the project repo for the final project of the Udacity Self-Driving Car Nanodegree: Programming a Real Self-Driving Car. For more information about the project, see the project introduction [here](https://classroom.udacity.com/nanodegrees/nd013/parts/6047fe34-d93c-4f50-8336-b70ef10cb4b2/modules/e1a23b06-329a-4684-a717-ad476f0d8dff/lessons/462c933d-9f24-42d3-8bdc-a08a5fc866e4/concepts/5ab4b122-83e6-436d-850f-9f4d26627fd9).
+#Capston Project
+##Udacity Self-Driving Car Nanodegree 
 
-Please use **one** of the two installation options, either native **or** docker installation.
+This is an individual submission. 
 
-### Native Installation
+### Summary
+Since I've only have a MacBook Pro laptop I've choose to work with a VM. Unfortunately the processing power of the machine is not enough to run the VM and the simulator (simulator is not run in the VM) and process the instruction fast enough. So I have a severe latency problem where the simulator receives very outdated data from the ROS server. I've managed to make some improvements so I can at least partially test the solution, but haven't actually manage to run the Camera on and Manual off all the time. 
+The same is observed on the Project Workspace.
+I submit the project with higher values for the rate of the of the tl_detector, dbw_node, waypoint_updater and pure_pursuit that I have actually tested and will appreciate feed back on your run in the simulator. 
 
-* Be sure that your workstation is running Ubuntu 16.04 Xenial Xerus or Ubuntu 14.04 Trusty Tahir. [Ubuntu downloads can be found here](https://www.ubuntu.com/download/desktop).
-* If using a Virtual Machine to install Ubuntu, use the following configuration as minimum:
-  * 2 CPU
-  * 2 GB system memory
-  * 25 GB of free hard drive space
+Since individual submissions are not run on Carla :( I've only covered the simulator.
 
-  The Udacity provided virtual machine has ROS and Dataspeed DBW already installed, so you can skip the next two steps if you are using this.
+### Waypoint Updater
 
-* Follow these instructions to install ROS
-  * [ROS Kinetic](http://wiki.ros.org/kinetic/Installation/Ubuntu) if you have Ubuntu 16.04.
-  * [ROS Indigo](http://wiki.ros.org/indigo/Installation/Ubuntu) if you have Ubuntu 14.04.
-* [Dataspeed DBW](https://bitbucket.org/DataspeedInc/dbw_mkz_ros)
-  * Use this option to install the SDK on a workstation that already has ROS installed: [One Line SDK Install (binary)](https://bitbucket.org/DataspeedInc/dbw_mkz_ros/src/81e63fcc335d7b64139d7482017d6a97b405e250/ROS_SETUP.md?fileviewer=file-view-default)
-* Download the [Udacity Simulator](https://github.com/udacity/CarND-Capstone/releases).
+Following the walkthrough I've replicated the proposed solution with very little tweaks. 
 
-### Docker Installation
-[Install Docker](https://docs.docker.com/engine/installation/)
+* The node subscribes to 
+ * current_pose to have the car current position
+ * base_waypoints to get the list of waypoints to follow
+ * traffic_waypoint to get the closest traffic stop line waypoint index position with a red signal. 
 
-Build the docker container
-```bash
-docker build . -t capstone
-```
+On each run according to the rate of execution it first finds the closest waypoint in front of the car and then takes the waypoints to look ahead for publishing. If there is a red traffic light waypoint in front it updates the target speed of the waypoints gradually descending to 0. The code also considers not to update the target speed above the preset waypoint speed, which can happen if the distance is great. 
 
-Run the docker file
-```bash
-docker run -p 4567:4567 -v $PWD:/capstone -v /tmp/log:/root/.ros/ --rm -it capstone
-```
+### Drive By Wire Node
+The node is responsible for publishing the steering angle throttle and brake values in order to drive the car. It first considers if the dbw_enabled is set to true so it doesn't tries to control the vehicle if the driver is in control. 
+It then filters the current velocity since the data might have spikes that should be ignored. 
+It then uses YawController to get the steering angle from the set linear velocity and angular velocity which the twist command have set. 
+Based on the difference between the current velocity and the desired velocity it determines values for brake and throttle. 
 
-### Port Forwarding
-To set up port forwarding, please refer to the [instructions from term 2](https://classroom.udacity.com/nanodegrees/nd013/parts/40f38239-66b6-46ec-ae68-03afd8a601c8/modules/0949fca6-b379-42af-a919-ee50aa304e6a/lessons/f758c44c-5e40-4e01-93b5-1a82aa4e044f/concepts/16cf4a78-4fc7-49e1-8621-3450ca938b77)
+### Traffic light Detection 
 
-### Usage
-
-1. Clone the project repository
-```bash
-git clone https://github.com/udacity/CarND-Capstone.git
-```
-
-2. Install python dependencies
-```bash
-cd CarND-Capstone
-pip install -r requirements.txt
-```
-3. Make and run styx
-```bash
-cd ros
-catkin_make
-source devel/setup.sh
-roslaunch launch/styx.launch
-```
-4. Run the simulator
-
-### Real world testing
-1. Download [training bag](https://s3-us-west-1.amazonaws.com/udacity-selfdrivingcar/traffic_light_bag_file.zip) that was recorded on the Udacity self-driving car.
-2. Unzip the file
-```bash
-unzip traffic_light_bag_file.zip
-```
-3. Play the bag file
-```bash
-rosbag play -l traffic_light_bag_file/traffic_light_training.bag
-```
-4. Launch your project in site mode
-```bash
-cd CarND-Capstone/ros
-roslaunch launch/site.launch
-```
-5. Confirm that traffic light detection works on real life images
+A difference from the walkthough is that node is processed on a rate base instead on each coming image. I've trained a classifier for processing the image and determining the traffic light stated based on work done by Alexander Lecher [Traffic Light Classification](https://github.com/alex-lechner/Traffic-Light-Classification#1-the-lazy-approach)
+I've also chosen to use [SSD Inception V2 Coco (17/11/2017)](https://github.com/alex-lechner/Traffic-Light-Classification#1-choosing-a-model) model and use the data generated by him. 
